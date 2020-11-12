@@ -5,14 +5,25 @@ import React, { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { toast } from "react-toastify"
 import { Link } from "react-router-dom"
+import { createOrUpdateUser } from "../../functions/auth"
 const Login = ({ history }) => {
     const [email, setEmail] = useState("thien09062000@gmail.com")
     const [password, setPassword] = useState("thien107")
     const [loading, setLoading] = useState(false)
-    const {user} = useSelector((state) => ({...state}))
-    useEffect(()=> {
-        if(user&&user.token) history.push("/")
+    const { user } = useSelector((state) => ({ ...state }))
+    useEffect(() => {
+        if (user && user.token) history.push("/")
     }, [user])
+
+    const rolBasedRedirect = (res) => {
+        if (res.data.role === 'admin') {
+            history.push('/admin/dashboard')
+        }
+        else {
+            history.push('/user/history')
+        }
+    }
+
 
     let dispatch = useDispatch()
     const handleSubmit = async (e) => {
@@ -23,14 +34,22 @@ const Login = ({ history }) => {
 
             const { user } = result;
             const idTokenResult = await user.getIdTokenResult();
-            dispatch({
-                type: "LOGGED_IN_USER",
-                payload: {
-                    email: user.email,
-                    token: idTokenResult.token
-                }
-            })
-            history.push('/')
+            console.log(idTokenResult.token);
+            createOrUpdateUser(idTokenResult.token)
+                .then(res => {
+                    dispatch({
+                        type: "LOGGED_IN_USER",
+                        payload: {
+                            name: res.data.name,
+                            email: user.email,
+                            token: idTokenResult.token,
+                            role: res.data.role,
+                            _id: res.data._id
+                        }
+                    })
+                    rolBasedRedirect(res)
+                })
+                .catch(err => console.log(err))
         } catch (error) {
             console.log(error);
             toast.error(error.message)
@@ -71,14 +90,20 @@ const Login = ({ history }) => {
             .then(async (result) => {
                 const { user } = result;
                 const idTokenResult = await user.getIdTokenResult();
-                dispatch({
-                    type: "LOGGED_IN_USER",
-                    payload: {
-                        email: user.email,
-                        token: idTokenResult.token
-                    }
-                })
-                history.push("/")
+                createOrUpdateUser(idTokenResult.token)
+                    .then(res => {
+                        dispatch({
+                            type: "LOGGED_IN_USER",
+                            payload: {
+                                name: res.data.name,
+                                email: user.email,
+                                token: idTokenResult.token,
+                                role: res.data.role,
+                                _id: res.data._id
+                            }
+                        })
+                        rolBasedRedirect(res)
+                    })
             })
             .catch(err => {
                 console.log(err);
@@ -93,13 +118,13 @@ const Login = ({ history }) => {
                     {loginForm()}
                 </div>
                 <Button
-                onClick={googleLogin}
-                type="danger"
-                className="mb-3"
-                block
-                shape="round"
-                icon={<GoogleOutlined/>}
-                size="large"
+                    onClick={googleLogin}
+                    type="danger"
+                    className="mb-3"
+                    block
+                    shape="round"
+                    icon={<GoogleOutlined />}
+                    size="large"
                 >
                     Login with Google
                 </Button>

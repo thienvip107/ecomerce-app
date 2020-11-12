@@ -6,3 +6,5 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://ecomerce-app-6c55a.firebaseio.com"
 });
+
+module.exports = admin
